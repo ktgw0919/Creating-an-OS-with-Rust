@@ -1,1 +1,17 @@
+# Rustのビルド生成物
 /target
+
+# OS自作で生成されるバイナリやディスクイメージ
+*.efi
+*.img
+*.iso
+*.bin
+
+# エディタの設定
+.vscode/
+.idea/
+*.swp
+
+# OS固有の一時ファイル
+.DS_Store
+Thumbs.db
