@@ -43,7 +43,7 @@ pub enum EfiMemoryType {
     BOOT_SERVICES_DATA,
     RUNTIME_SERVICES_CODE,
     RUNTIME_SERVICES_DATA,
-    CONVENTIONAL_MEMORY,
+    CONVENTIONAL_MEMORY, // OSが利用可能なメモリ
     UNSABLE_MEMORY,
     ACPI_RECLAIM_MEMORY,
     ACPI_MEMORY_NVS,
@@ -69,6 +69,9 @@ impl EfiMemoryDescriptor {
     pub fn number_of_pages(&self) -> u64 {
         self.number_of_pages
     }
+    pub fn physical_start(&self) -> u64 {
+        self.physical_start
+    }
 }
 
 const MEMORY_MAP_BUFFER_SIZE: usize = 0x8000;
@@ -91,10 +94,7 @@ impl MemoryMapHolder {
         }
     }
     pub fn iter(&self) -> MemoryMapIterator {
-        MemoryMapIterator {
-            map: self,
-            ofs: 0,
-        }
+        MemoryMapIterator { map: self, ofs: 0 }
     }
 }
 impl Default for MemoryMapHolder {
@@ -114,8 +114,7 @@ impl<'a> Iterator for MemoryMapIterator<'a> {
             None
         } else {
             let e: &EfiMemoryDescriptor = unsafe {
-                &*(self.map.memory_map_buffer.as_ptr().add(self.ofs)
-                    as *const EfiMemoryDescriptor)
+                &*(self.map.memory_map_buffer.as_ptr().add(self.ofs) as *const EfiMemoryDescriptor)
             };
             self.ofs += self.map.descriptor_size;
             Some(e)
@@ -125,7 +124,6 @@ impl<'a> Iterator for MemoryMapIterator<'a> {
 
 #[repr(C)]
 pub struct EfiBootServicesTable {
-    /* _reversed0: [u64; 40], */
     _reserved0: [u64; 7],
     get_memory_map: extern "win64" fn(
         memory_map_size: *mut usize,
@@ -134,10 +132,8 @@ pub struct EfiBootServicesTable {
         descriptor_size: *mut usize,
         descriptor_version: *mut u32,
     ) -> EfiStatus,
-    /* _reserved1: [u64; 32], */
     _reserved1: [u64; 21],
-    exit_boot_services:
-        extern "win64" fn(image_handle: EfiHandle, map_key: usize) -> EfiStatus,
+    exit_boot_services: extern "win64" fn(image_handle: EfiHandle, map_key: usize) -> EfiStatus,
     _reserved4: [u64; 10],
     locate_protocol: extern "win64" fn(
         protocol: *const EfiGuid,
@@ -274,7 +270,7 @@ impl fmt::Write for VramTextWriter<'_> {
                 self.cursor_x = 0;
                 continue;
             }
-            draw_font_fg(self.vram, self.cursor_x, self.cursor_y, 0xffffff,c);
+            draw_font_fg(self.vram, self.cursor_x, self.cursor_y, 0xffffff, c);
             self.cursor_x += 8;
         }
         Ok(())
@@ -289,10 +285,8 @@ pub fn exit_from_efi_boot_services(
     loop {
         let status = efi_system_table.boot_services.get_memory_map(memory_map);
         assert_eq!(status, EfiStatus::Success);
-        let status = (efi_system_table.boot_services.exit_boot_services)(
-            image_handle,
-            memory_map.map_key,
-        );
+        let status =
+            (efi_system_table.boot_services.exit_boot_services)(image_handle, memory_map.map_key);
         if status == EfiStatus::Success {
             break;
         }

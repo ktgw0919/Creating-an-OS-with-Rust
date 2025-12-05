@@ -7,9 +7,9 @@ pub trait Bitmap {
     fn width(&self) -> i64;
     fn height(&self) -> i64;
     fn buf_mut(&mut self) -> *mut u8;
-    /// #Safety
+    /// # Safety
     ///
-    /// Returned pointer is valid as ling as the given coordinates are valid
+    /// Returned pointer is valid as long as the given coordinates are valid
     /// which means that passing is_in_*_range tests.
     unsafe fn unchecked_pixel_at_mut(&mut self, x: i64, y: i64) -> *mut u32 {
         self.buf_mut()
@@ -44,7 +44,14 @@ fn draw_point<T: Bitmap>(buf: &mut T, color: u32, x: i64, y: i64) -> Result<()> 
     Ok(())
 }
 
-pub fn fill_rect<T: Bitmap>(buf: &mut T, color: u32, px: i64, py: i64, w: i64, h: i64) -> Result<()> {
+pub fn fill_rect<T: Bitmap>(
+    buf: &mut T,
+    color: u32,
+    px: i64,
+    py: i64,
+    w: i64,
+    h: i64,
+) -> Result<()> {
     if !buf.is_in_x_range(px)
         || !buf.is_in_y_range(py)
         || !buf.is_in_x_range(px + w - 1)
@@ -98,9 +105,8 @@ fn draw_line<T: Bitmap>(buf: &mut T, color: u32, x0: i64, y0: i64, x1: i64, y1: 
     Ok(())
 }
 
-
 fn lookup_font(c: char) -> Option<[[char; 8]; 16]> {
-    const FONT_SOURCE: & str = include_str!("./font.txt");
+    const FONT_SOURCE: &str = include_str!("./font.txt");
     // 文字がASC2範囲かをチェック
     if let Ok(c) = u8::try_from(c) {
         let mut fi = FONT_SOURCE.split('\n');
@@ -111,7 +117,7 @@ fn lookup_font(c: char) -> Option<[[char; 8]; 16]> {
                         continue;
                     }
                     let mut font = [['*'; 8]; 16];
-                    for (y,line) in fi.clone().take(16).enumerate() {
+                    for (y, line) in fi.clone().take(16).enumerate() {
                         for (x, c) in line.chars().enumerate() {
                             if let Some(e) = font[y].get_mut(x) {
                                 *e = c;
@@ -128,7 +134,7 @@ fn lookup_font(c: char) -> Option<[[char; 8]; 16]> {
 
 pub fn draw_font_fg<T: Bitmap>(buf: &mut T, x: i64, y: i64, color: u32, c: char) {
     if let Some(font) = lookup_font(c) {
-        for (dy,row) in font.iter().enumerate() {
+        for (dy, row) in font.iter().enumerate() {
             for (dx, pixel) in row.iter().enumerate() {
                 let color = match pixel {
                     '*' => color,
