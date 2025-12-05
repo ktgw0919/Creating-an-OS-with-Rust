@@ -8,8 +8,8 @@ pub mod allocator;
 pub mod graphics;
 pub mod qemu;
 pub mod result;
-pub mod uefi;
 pub mod serial;
+pub mod uefi;
 pub mod x86;
 
 #[cfg(test)] // テスト時のみ下のモジュールを読み込む
@@ -17,6 +17,10 @@ pub mod test_runner;
 
 #[cfg(test)]
 #[no_mangle]
-pub fn efi_main() {
+fn efi_main(image_handle: uefi::EfiHandle, efi_system_table: &uefi::EfiSystemTable) {
+    let mut memory_map = uefi::MemoryMapHolder::new();
+    uefi::exit_from_efi_boot_services(image_handle, efi_system_table, &mut memory_map);
+
+    allocator::ALLOCATOR.init_with_mmap(&memory_map);
     run_unit_tests()
 }
